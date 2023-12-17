@@ -1,0 +1,33 @@
+#compdef s6-rc
+
+# boilerplate
+local context state state_descr line
+typeset -A opt_args
+
+local -a cmds=(
+	'change:change machine state (bring services up or down)'
+	'diff:check if s6-rc and s6-svscan disagree on the state of longruns'
+	'list:list selected services (most useful with -a)'
+	'listall:list selected services and their dependencies'
+	'start:bring service and its dependencies up (equivalent to -u change)'
+	'stop:bring service and those that depend on it down (equivalent to -d change)'
+	'help'
+)
+
+_arguments -A '-*' -S -s : \
+	'-u[select up state (change) display dependencies (listall)]' '-d[select down state (change) display reverse dependencies (listall)]' '-D[select down even if service is essential (change)]' \
+	'-l[live configuration folder]:directory:_path_files -/' \
+	'-a[select all active services]' \
+	'-b[wait for lock to be released]' \
+	'-p[ensure only selected services are in the selected state (change)]' \
+	'-n[enable dry run]:timeout:' \
+	'-t[timeout for change, in miliseconds]:timeout:' \
+	'-v[verbosity (numerical)]:verbosity:(1 2 3)' \
+	'1:action:->action' \
+	'*: :->services'
+
+if [ "$state" = action ]; then
+	_describe -t commands command cmds
+elif [ "$state" = services ]; then
+	[ "$line[1]" != help ] && compadd -- ${(f)"$(s6-rc-db ${opt_args[-l]+-l${opt_args[-l]}} list all 2>/dev/null)"}
+fi

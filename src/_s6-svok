@@ -1,0 +1,3 @@
+#compdef s6-svok
+((${#words} == 2)) && _path_files -/
+

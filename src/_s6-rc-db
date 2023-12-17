@@ -1,0 +1,47 @@
+#compdef s6-rc-db
+
+# boilerplate
+local context state state_descr line
+typeset -A opt_args
+
+local -a cmds=(
+	'check:check database consistency'
+	'list:list services of a given type'
+	'type:print the type of a service'
+	"timeout:print the timeout for a given service's scripts"
+	'contents:list the contents of a bundle'
+	'dependencies:print the direct dependencies of a service'
+	'pipeline:prints the members of the pipeline the service belongs to'
+	'script:dump the Unix command line of a oneshot'
+	'flags:unused'
+	'atomics:prints the union of all atomic services implied by a name'
+	'all-dependencies:prints the list of all atomic services needed to bring up a service'
+	'help'
+)
+
+ __s6rc_db() {
+	compadd -- ${(f)"$(s6-rc-db ${opt_args[-l]+-l${opt_args[-l]}} ${opt_args[-c]+-c${opt_args[-c}} list "${1-all}" 2>/dev/null)"}
+}
+
+_arguments -A '-*' -S -s : \
+	'-u[dump the "up" script (script) print timeout for "up" (timeout)]' '-d[dump the "down" script (script) print timeout for "down" (timeout) display direct reverse dependencies (dependencies)]' \
+	'-l[live configuration folder]:directory:_path_files -/' \
+	'-c[compiled services folder]:directory:_path_files -/' \
+	'-b[wait for lock to be released]' \
+	'1:action:->action' \
+	'*: :->services'
+
+if [ "$state" = action ]; then
+	_describe -t commands command cmds
+elif [ "$state" = services ]; then
+	case ${line[1]} in
+		(help|check) ;;
+		(list) compadd -- all services oneshots longruns bundles ;;
+		(type|*dependencies|atomics) __s6rc_db ;;
+		(timeout|flags) __s6rc_db services ;;
+		(contents) __s6rc_db bundles ;;
+		(pipeline) __s6rc_db longruns ;;
+		(script) __s6rc_db oneshots ;;
+		(*) _message "Unknown s6-rc-db command: $line[1]" ;;
+	esac
+fi
