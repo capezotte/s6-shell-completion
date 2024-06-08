@@ -4,6 +4,7 @@ _arguments -A '-*' -S -s : \
 	'*:servicedir:_path_files -/' \
 	-w+'[Wait for an event before exiting]':'<event>':'((d\:down D\:down\ and\ ready\ to\ start u\:up U\:ready r\:restarted R\:restarted\ and\ up))' \
 	-T+'[Timeout for -w]':'<timeout>':  \
+	-s+'[Send any signal]':'<signal>':  \
 	+ '(signals)' \
- -r'[Restart]' -d'[Down]' -u'[Up]' -a'[SIGALRM]' -b'[SIGABRT]' -q'[SIGQUIT]' -h'[SIGHUP]' -k'[SIGKILL]' -t'[SIGTERM]' -i'[SIGINT]' -1'[SIGUSR1]' -2'[SIGUSR2]' -p'[SIGSTOP]' -c'[SIGCONT]' -y'[SIGWINCH]'
+	-r'[Restart]' -d'[Down]' -u'[Up]' -D'[Down (and touch down file)]' -U'[Up (and remove down file)]' -a'[SIGALRM]' -b'[SIGABRT]' -q'[SIGQUIT]' -h'[SIGHUP]' -k'[SIGKILL]' -t'[SIGTERM]' -i'[SIGINT]' -1'[SIGUSR1]' -2'[SIGUSR2]' -p'[SIGSTOP]' -c'[SIGCONT]' -y'[SIGWINCH]' -P'[SIGSTOP process group]' -K'[SIGKILL process group]' -C'[SIGCONT process group]'
 

@@ -81,7 +81,7 @@ _s6-svc() {
 		compopt -o plusdirs -o nosort
 		# cursed_optspec.sh
 		local _s6_opt_{w,T}
-		__s6_getopt w:abqhkti12pcyroduxOXT:
+		__s6_getopt w:abqhkKti12pPcCyrodDuxOXT:
 	esac
 	# Do matching
 	COMPREPLY=( $(compgen -W '${COMPREPLY[@]}' -- "${cur}") )
@@ -95,7 +95,7 @@ _s6-svstat() {
 		compopt -o nospace
 		# Find current and previous items.
 		local curitem="${cur##*,}" before="${cur%,*}" \
-		fields='up,wantedup,normallyup,ready,paused,pid,exitcode,signal,signum,updownsince,readysince,updownfor,readyfor,'
+		fields='up,wantedup,normallyup,ready,paused,pid,pgid,exitcode,signal,signum,updownsince,readysince,updownfor,readyfor,'
 
 		# Remove already used fields
 		for i in $before; do

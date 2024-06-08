@@ -3,4 +3,4 @@
 _arguments -A '-*' -S -s : \
 	'*: :_path_files -/' \
 	'-u[equivalent to -o up]' '-w[equivalent to -o wantedup]' '-N[equivalent to -o normallyup]' '-r[equivalent to -o ready]' '-p[equivalent to -o pid]' '-e[equivalent to -o exitcode]' '-s[equivalent to -o signal]' '-t[equivalent to -o updownfor]' \
-	'*-o[Fields to display]':'<field>':'(up wantedup normallyup ready paused pid exitcode signal signum updownsince readysince updownfor readyfor)'
+	'*-o[Fields to display]':'<field>':'(up wantedup normallyup ready paused pid pgid exitcode signal signum updownsince readysince updownfor readyfor)'
