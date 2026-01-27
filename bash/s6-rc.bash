@@ -10,7 +10,7 @@ __s6_getopt() {
 	local i optspec="$1" opt opts='' optsarg=''
 
 	# basic optspec parse
-	for ((i=0;i<${#optspec}-1;i++)); do
+	for ((i=0;i<${#optspec};i++)); do
 		opt="-${optspec:i:1}"
 		if [ "${optspec:i+1:1}" = : ]; then
 			optsarg="${optsarg}${opt}"
