@@ -505,7 +505,7 @@ _s6() {
 # side effect: sets conf
 _s6f_getconf() {
 	conf=$(envfile -I -- "${S6_FRONTEND_CONF:-/etc/s6-frontend.conf}" \
-		importas var "$1" \
+		importas -i var "$1" \
 		printf '%s\n' \$var 2>/dev/null)
 }
 
