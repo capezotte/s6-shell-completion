@@ -22,8 +22,8 @@ _arguments -A '-*' -S -s : \
 	+ '(help)' \
 		{-h,--help}'[help message]' \
 		{-V,--version}'[show version]' \
-	+ '(verbosity)' {-v,--verbosity=-}'[verbosity (numerical)]:verbosity:(1 2 3)' \
-	+ '(repository)' {-r,--repository=-}'[choose s6-rc repository folder]:repository:_path_files -/' \
+	+ '(verbosity)' {-v,--verbosity=-}'[verbosity (numerical)]:verbosity:(0 1 2 3)' \
+	+ '(repository)' {-r,--repodir=-}'[choose s6-rc repository folder]:repository:_path_files -/' \
 	+ '(bootdir)' {-c,--bootdb=-}'[choose s6-rc boot-time database path]:bootdb:_path_files -/' \
 	+ '(livedir)' {-l,--livedir=-}'[choose s6-rc runtime database path]:livedir:_path_files -/' \
 	+ '(scandir)' {-s,--scandir=-}'[choose s6-svscan service directory]:scandir:_path_files -/' \
@@ -95,6 +95,8 @@ confdefs=(
 	scandir /run/service
 	repodir /var/lib/s6-rc/repository
 )
+set -x
+typeset -p opt_args
 for var in ${(k)conf}; do
 	local kshort="$var--${conf[$var]}" klong="$var---$var"
 	for cont in \
@@ -106,6 +108,7 @@ for var in ${(k)conf}; do
 		print -v "$var" -- "$cont" 
 	done
 done
+set +x
 
 args=()
 

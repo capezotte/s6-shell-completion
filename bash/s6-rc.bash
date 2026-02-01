@@ -263,7 +263,7 @@ _s6-rc() {
 	local cur="${COMP_WORDS[COMP_CWORD]}" prev="${COMP_WORDS[COMP_CWORD-1]}" startstop
 	case $prev in
 	(-v)
-		COMPREPLY=( {1..3} )
+		COMPREPLY=( {0..3} )
 		return
 	;;
 	(-t|-n) return ;;
@@ -321,7 +321,7 @@ _s6rc_set() {
 			return
 			;;
 		(-v|--verbosity)
-			COMPREPLY=(1 2 3)
+			COMPREPLY=( {0..3} )
 			return
 			;;
 		(-f|--conv-file)
@@ -424,7 +424,7 @@ _s6() {
 
 	case $prev in
 	(-v|--verbosity)
-		COMPREPLY=( {1..3} )
+		COMPREPLY=( {0..3} )
 	;;
 	(-s|--scandir|-l|--livedir|-r|--repodir|-c|--bootdb|--stmpdir|--storelist)
 		compopt -o plusdirs
@@ -620,7 +620,7 @@ _s6_live_install() {
 	esac
 
 	local _s6_opt_f
-	__s6_getopt bKf 'block=b' 'keep-old=K' 'conversion-file=f' 'init='
+	__s6_getopt bKf: 'block=b' 'keep-old=K' 'conversion-file=f' 'init='
 }
 # mostly distro only commands
 _s6_live_start-everything() { return 1; }

@@ -22,7 +22,7 @@ _arguments -A '-*' -S -s : \
 	'-p[ensure only selected services are in the selected state (change)]' \
 	'-n[enable dry run]:timeout:' \
 	'-t[timeout for change, in miliseconds]:timeout:' \
-	'-v[verbosity (numerical)]:verbosity:(1 2 3)' \
+	'-v[verbosity (numerical)]:verbosity:(0 1 2 3)' \
 	'1:action:->action' \
 	'*: :->services'
 

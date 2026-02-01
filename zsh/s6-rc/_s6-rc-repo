@@ -96,7 +96,7 @@ esac
 
 
 _arguments -A '-*' -S -s : \
-	'(verbosity)'{-v,--verbosity=-}'[verbosity (numerical)]:verbosity:(1 2 3)' \
+	'(verbosity)'{-v,--verbosity=-}'[verbosity (numerical)]:verbosity:(0 1 2 3)' \
 	'(repository)'{-r,--repository=-}'[choose s6-rc repository folder]:repository:_path_files -/' \
 	${s6_args[@]}
 
