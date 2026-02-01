@@ -16,17 +16,17 @@ _arguments -A '-*' -S -s : \
 		':tool:->tool' \
 		':tool-scmd:->subtool' \
 		'*::args:->args' \
-		'(verbosity)'{-v,--verbosity=-}'[verbosity (numerical)]:verbosity:(1 2 3)' \
-		'(repository)'{-r,--repository=-}'[choose s6-rc repository folder]:repository:_path_files -/' \
-		'(bootdir)'{-c,--bootdb=-}'[choose s6-rc boot-time database path]:bootdb:_path_files -/' \
-		'(livedir)'{-l,--livedir=-}'[choose s6-rc runtime database path]:livedir:_path_files -/' \
-		'(scandir)'{-s,--scandir=-}'[choose s6-svscan service directory]:scandir:_path_files -/' \
 		'--color:pretty-print output:(auto yes no)' \
-		'--storelist=-:colon-separated list of stores:storelist:_path_files -/' \
-		'--stmpdir=-:temporary files directory:stmpdir:_path_files -/' \
+		'--storelist=-[colon-separated list of stores]:storelist:_path_files -/' \
+		'--stmpdir=-[temporary files directory]:stmpdir:_path_files -/' \
 	+ '(help)' \
 		{-h,--help}'[help message]' \
-		{-V,--version}'[show version]'
+		{-V,--version}'[show version]' \
+	+ '(verbosity)' {-v,--verbosity=-}'[verbosity (numerical)]:verbosity:(1 2 3)' \
+	+ '(repository)' {-r,--repository=-}'[choose s6-rc repository folder]:repository:_path_files -/' \
+	+ '(bootdir)' {-c,--bootdb=-}'[choose s6-rc boot-time database path]:bootdb:_path_files -/' \
+	+ '(livedir)' {-l,--livedir=-}'[choose s6-rc runtime database path]:livedir:_path_files -/' \
+	+ '(scandir)' {-s,--scandir=-}'[choose s6-svscan service directory]:scandir:_path_files -/' \
 
 if [ "$state" = tool ]; then
 	_values "s6-frontend-tool" $tools
@@ -79,6 +79,9 @@ fi
 
 [ "$state" = args ] || return
 
+shift words
+((CURRENT--))
+
 local var cont scandir livedir bootdb repodir
 typeset -A conf confdefs
 conf=(
@@ -93,7 +96,7 @@ confdefs=(
 	repodir /var/lib/s6-rc/repository
 )
 for var in ${(k)conf}; do
-	local kshort="-${conf[$var]}" klong="--$var"
+	local kshort="$var--${conf[$var]}" klong="$var---$var"
 	for cont in \
 		${confdefs[$var]} \
 		$(envfile -I "${S6_FRONTEND_CONF-/etc/s6-frontend.conf}" importas -i var "$var" printf %s '$var' 2>/dev/null) \
@@ -114,7 +117,7 @@ case ${line[1]} in
 			delete|load) args+=( ':set:->set' ) ;;
 			check)
 				args+=(
-					'(fix)'{-F,--fix}'[fix errors checked for]'
+					+ '(fix)' {-F,--fix}'[fix errors checked for]'
 					+ '(moreless)'
 						'(fixup)'{-u,--up}'[fix inconsistencies by adding services]'
 						'(fixdown)'{-d,--down}'[fix inconsistencies by removing services]'
@@ -137,17 +140,17 @@ case ${line[1]} in
 				;;
 			commit)
 				args+=(
-					'(dbundle)'{-D,--default-bundle=-}'[Use this name for the configured bundle instead of "default"]:: '
-					'(fdhuser)'{-h,--fdhuser=-}'[(advanced) setuidgid fd holder daemon]:fdhuser:_users'
-					'(keep)'{-K,--keep-old}'[print path of old database backup after commit]'
-					'(force)'{-f,--force}'[commit set even if compile database is already up to date]'
+					+ '(dbundle)' {-D,--default-bundle=-}'[Use this name for the configured bundle instead of "default"]:: '
+					+ '(fdhuser)' {-h,--fdhuser=-}'[(advanced) setuidgid fd holder daemon]:fdhuser:_users'
+					+ '(keep)' {-K,--keep-old}'[print path of old database backup after commit]'
+					+ '(force)' {-f,--force}'[commit set even if compile database is already up to date]'
 				)
 				;;
 			*)
 				# set change cmds
 				args+=(
 					'*:services:->service'
-					'(dryrun)'{-n,--dry-run}'[check whether command would succeeded, but do not actually do anything]'
+					+ '(dryrun)' {-n,--dry-run}'[check whether command would succeeded, but do not actually do anything]'
 					+ '(ondep)'
 						'(force)'{-f,--force}'[ignore dependencies when applying prescription]'
 						'(act)'{-I,--if-dependencies-found=-}'[what to do with dependencies when service is added]:if-dependencies-found:((fail warn\:print\ warning\ and\ proceed pull\:act\ on\ dependencies\ similarly))'
@@ -167,14 +170,14 @@ case ${line[1]} in
 				;&
 			restart|start|stop|kill)
 				args+=(
-					'(timeout)'{-t,--timeout=-}'[timeout in milliseconds for waiting]:timeout:'
+					+ '(timeout)' {-t,--timeout=-}'[timeout in milliseconds for waiting]:timeout:'
 					+ '(do-wait)'
 						'(wait)'{-w,--wait}"[wait until service ${var}]"
 						'(no-wait)'{-W,--no-wait}"[do not wait until service ${var} (default)]"
 				)
 				;|
 			kill)
-				args+=( '(sig)'{-s,--signal=-}'[signal to send]:signal:_signals' )
+				args+=( + '(sig)' {-s,--signal=-}'[signal to send]:signal:_signals' )
 				;;
 			start|stop)
 				args+=(
@@ -197,8 +200,8 @@ case ${line[1]} in
 			start*|stop*|restart)
 				args+=(
 					'*:service:->live'
-					'(dryrun)'{-n,--dry-run}'[only print what would be done]'
-					'(timeout)'{-t,--timeout=-}"[timeout in milliseconds for services to ${line[2]%-everything}]:timeout:"
+					+ '(dryrun)' {-n,--dry-run}'[only print what would be done]'
+					+ '(timeout)' {-t,--timeout=-}"[timeout in milliseconds for services to ${line[2]%-everything}]:timeout:"
 				)
 				;;
 			status)
@@ -211,11 +214,11 @@ case ${line[1]} in
 			install)
 				args+=(
 					'--init[update boot-time database, not the live one (DANGEROUS, do not use)]'
-					'(compiled)'{-c,--bootdb=-}'[boot-time database path]:bootdb:_path_files -/'
-					'(live)'{-l,--livedir=-}'[s6-rc runtime database path]:livedir:_path_files -/'
-					'(convfile)'{-f,--conversion-file=-}'[s6-rc-update conversion file]:convfile:_path_files'
-					'(block)'{-b,--block}'[wait if another service is locking the database instead of failing]'
-					'(keep)'{-K,--keep-old}'[print path of old database backup after commit]'
+					+ '(compiled)' {-c,--bootdb=-}'[boot-time database path]:bootdb:_path_files -/'
+					+ '(live)' {-l,--livedir=-}'[s6-rc runtime database path]:livedir:_path_files -/'
+					+ '(convfile)' {-f,--conversion-file=-}'[s6-rc-update conversion file]:convfile:_path_files'
+					+ '(block)' {-b,--block}'[wait if another service is locking the database instead of failing]'
+					+ '(keep)' {-K,--keep-old}'[print path of old database backup after commit]'
 					+ '(want-stop-essential)'
 						'(noessential)'{-E,--no-force-essentials}'[do not stop essential services, even if needed to update]'
 						'(essential)'{-e,--force-essentials}'[stop essential services if necessary (default)]'
@@ -226,7 +229,7 @@ case ${line[1]} in
 esac
 
 curcontext="${curcontext%:*:*}:s6_$line[1]_$line[2]:"
-_arguments -S -s : $args
+_arguments -A '-*' -S -s : $args
 
 case $state in
 	svc)
