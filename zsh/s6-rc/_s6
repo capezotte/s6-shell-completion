@@ -180,7 +180,7 @@ case ${line[1]} in
 				)
 				;|
 			kill)
-				args+=( + '(sig)' {-s,--signal=-}'[signal to send]:signal:_signals' )
+				args+=( + '(sig)' {-s,--signal=-}'[signal to send]:signal:_signals -s' )
 				;;
 			start|stop)
 				args+=(
