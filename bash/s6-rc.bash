@@ -422,72 +422,76 @@ _s6() {
 	local cur="${COMP_WORDS[COMP_CWORD]}" prev="${COMP_WORDS[COMP_CWORD-1]}"
 	__longopt_fix COMP_CWORD || :
 
-	case $prev in
-	(-v|--verbosity)
-		COMPREPLY=( {0..3} )
-	;;
-	(-s|--scandir|-l|--livedir|-r|--repodir|-c|--bootdb|--stmpdir|--storelist)
-		compopt -o plusdirs
-		return
-	;;
-	(--color)
-		COMPREPLY=( yes no auto )
-	;;
-	(-h|--help|-V|--version) return ;;
-	(*)
-		local _s6_opt_{s,l,r,v,color,stmp} _s6_action _s6_action_i s6_cmd s6_subcmd
+	local _s6_opt_{s,l,r,v,color,stmp} _s6_action _s6_action_i s6_cmd='' s6_subcmd
 
-		__s6_getopt s:l:r:c:v: \
-			'scandir=s' 'livedir=l' 'repodir=r' 'bootdb=c' 'verbosity=v' \
-			'stmpdir=stmp' 'color=color' \
-			help version process live repository set system
+	# Getting __s6_getopt out of the way first because -l conflicts
+	# s6 process status vs s6 itself
+	__s6_getopt s:l:r:c:v: \
+		'scandir=s' 'livedir=l' 'repodir=r' 'bootdb=c' 'verbosity=v' \
+		'stmpdir=stmp' 'color=color' \
+		help version process live repository set system
 
-		case "$_s6_action" in
-		(version|help) return ;;
-		('') : ;; # if I could, I'd write goto #finish:
+
+	if ((COMP_CWORD<=_s6_action_i)) && [[ "$prev" == -* ]]; then
+		case $prev in
+			(-v|--verbosity)
+				COMPREPLY=( {0..3} )
+				;;
+			(-s|--scandir|-l|--livedir|-r|--repodir|-c|--bootdb|--stmpdir|--storelist)
+				compopt -o plusdirs
+				COMPREPLY=() # undo __s6_getopt
+				return
+				;;
+			(--color)
+				COMPREPLY=( yes no auto )
+				;;
+			(-h|--help|-V|--version)
+				COMPREPLY=()
+				return
+				;;
+		esac
+	elif [ "$_s6_action" ]; then
+		COMPREPLY=()
+		((COMP_CWORD-=_s6_action_i))
+		COMP_WORDS=( "${COMP_WORDS[@]:_s6_action_i}" )
+		s6_cmd="$_s6_action"
+		unset _s6_action _s6_action_i
+
+		case "$s6_cmd" in
+		(version|help|'') : ;;
+		(process) __s6_getopt '' help kill status start stop restart ;;
+		(live)
+			__s6_getopt '' help status \
+				start stop restart \
+				start-everything stop-everything \
+				install
+		;;
+		(repository) __s6_getopt '' help init list check sync ;;
+		(set)
+			__s6_getopt '' help save load delete list status \
+				enable disable mask unmask make-essential \
+				check commit
+		;;
+		(system) __s6_getopt '' boot halt poweroff shutdown reboot ;;
+		esac
+
+		case $_s6_action in
+		(help) return ;;
+		(repository|system)
+			: # system never takes options; repository is very distro only
+			;;
+		('') : ;; # goto finish;
 		(*)
-			s6_cmd="$_s6_action"
+			s6_subcmd="$_s6_action"
 			COMPREPLY=()
 			((COMP_CWORD-=_s6_action_i))
 			COMP_WORDS=( "${COMP_WORDS[@]:_s6_action_i}" )
 			unset _s6_action _s6_action_i
 
-			case "$s6_cmd" in
-			(process) __s6_getopt '' help kill status start stop restart ;;
-			(live)
-				__s6_getopt '' help status \
-					start stop restart \
-					start-everything stop-everything \
-					install
-			;;
-			(repository) __s6_getopt '' help init list check sync ;;
-			(set)
-				__s6_getopt '' help save load delete list status \
-					enable disable mask unmask make-essential \
-					check commit
-			;;
-			esac
-
-			# mostly distro only, unless stuff really went wrong
-			[ "$s6_cmd" != repository ] || return
-
-			case $_s6_action in
-			(help) return ;;
-			('') : ;; # again, goto
-			(*)
-				s6_subcmd="$_s6_action"
-				COMPREPLY=()
-				((COMP_CWORD-=_s6_action_i))
-				COMP_WORDS=( "${COMP_WORDS[@]:_s6_action_i}" )
-				unset _s6_action _s6_action_i
-
-				"_s6_${s6_cmd}_${s6_subcmd}" || return 0
-			;;
-			esac
+			"_s6_${s6_cmd}_${s6_subcmd}" || return 0
 		;;
 		esac
-
-	esac
+	fi
 
 #finish:
 	if [ "$cur" != = ]; then
@@ -588,6 +592,11 @@ _s6_process_restartstop() {
 _s6_process_start() { _s6_process_restartstop "pP" 'permanent=p' 'no-permanent=P'; }
 _s6_process_stop() { _s6_process_start; }
 _s6_process_restart() { _s6_process_restartstop; }
+_s6_process_status() {
+	__s6_getopt Ll 'with-logs=l' 'without-logs=L'
+	_s6f_processes
+	return 0
+}
 
 # s6 live
 
