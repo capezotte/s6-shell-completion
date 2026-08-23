@@ -174,7 +174,7 @@ __s6rc_db() {
 }
 
 __s6rc_rlist() {
-	_mapreply_append < <(command s6-rc-repo-list ${_s6_repodir+-r"${_s6_repodir}"})
+	_mapreply_append < <(command s6-rc-repo-list ${_s6_repodir:+-r"${_s6_repodir}"})
 }
 
 # repo reference db
@@ -481,7 +481,7 @@ _s6() {
 		;;
 		(repository) __s6_getopt '' help init list check sync ;;
 		(set)
-			__s6_getopt '' help save load delete list status \
+			__s6_getopt '' help copy apply delete list status \
 				enable disable mask unmask make-essential \
 				check commit
 		;;
@@ -539,7 +539,7 @@ _s6f_live() {
 # _s6f_repo db all|services|...
 _s6f_repo() {
 	local conf
-	if [ ! -v _s6_repodir ] && conf=$(_s6f_getconf repodir); then
+	if [ -z "${_s6_repodir}" ] && conf=$(_s6f_getconf repodir); then
 		_s6_repodir="$conf" __s6rc_r"$1" "${@:2}"
 	else
 		__s6rc_r"$1" "${@:2}"
@@ -653,8 +653,29 @@ _s6_live_stop-everything() { return 1; }
 
 # s6 set
 
-_s6_set_save() { __s6_getopt f 'force=f'; }
-_s6_set_load() { _s6f_repo list; }
+_s6_set_copy() {
+	local _s6_action{,_i}
+	local sets=()
+	_s6f_repo list
+	__s6_getopt f 'force=f' "${sets[@]}"
+}
+
+_s6_set_apply() {
+	local cur="${COMP_WORDS[COMP_CWORD]}" prev="${COMP_WORDS[COMP_CWORD-1]}"
+	__longopt_fix COMP_CWORD
+
+	case $prev in
+		(-s|--set)
+			_s6f_repo list
+			return 0
+		;;
+		(-d|--default-bundle|-t|--timeout) return 1 ;;
+	esac
+
+	local _s6_opt_{D,s,t}
+	_s6_getopt bD:s:t: 'block=b' 'default-bundle=D' 'set=s' 'timeout=t'
+}
+
 _s6_set_delete() { _s6f_repo list; }
 _s6_set_list() { __s6_getopt eE 'with-essentials=e' 'without-essentials=E'; }
 
@@ -670,7 +691,18 @@ _s6_set_check() {
 }
 
 _s6_set_change() {
-	__s6_getopt nIiPp 'dry-run=n' \
+	local cur="${COMP_WORDS[COMP_CWORD]}" prev="${COMP_WORDS[COMP_CWORD-1]}"
+	__longopt_fix COMP_CWORD
+
+	case $prev in
+		(-s|--set)
+			_s6f_repo list
+			: compreply "${COMPREPLY[@]}"
+			return 0
+		;;
+	esac
+
+	__s6_getopt s:nIiPp 'dry-run=n' 'set=s' \
 		'fail-on-dependencies=i' 'no-fail-on-dependencies=I' \
 		'pull-dependencies=p' 'no-pull-dependencies=P'
 	_s6f_repo db all
