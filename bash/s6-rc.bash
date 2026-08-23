@@ -179,11 +179,12 @@ _s6-svc() {
 	case $prev in
 	(-w) COMPREPLY+=(u U d D r R) ;;
 	(-T) return ;;
+	(-s) mapfile -t COMPREPLY <<< "$(compgen -A signal | sed -n 's/^SIG//p')" ;;
 	(*)
 		compopt -o plusdirs -o nosort
 		# cursed_optspec.sh
-		local _s6_opt_{w,T} _s6_action_i
-		__s6_getopt w:abqhkKti12pPcCyrodDuxOXT:
+		local _s6_opt_{w,T,s} _s6_action_i
+		__s6_getopt w:s:abqhkKti12pPcCyrodDuxOXT:
 	esac
 
 	mapfile -t COMPREPLY <<< "$(compgen -W '${COMPREPLY[@]}' -- "${cur}")"
@@ -570,12 +571,25 @@ _s6_process_kill() {
 
 	case $prev in
 		-t|--timeout) return 1 ;;
-		# TODO: complete signal names
-		-s) return 1 ;;
+		-s|--signal)
+			mapfile -t COMPREPLY <<< "$(compgen -A signal | sed -n 's/^SIG//p')"
+			return 0
+		;;
 	esac
+
+	# FIXME: cleaner way of preventing overwriting of scandir
+	local reals
+	[ ! -v _s6_opt_s ] || reals="$_s6_opt_s"
 
 	local _s6_opt_{s,t}
 	__s6_getopt Wws:t: 'wait=w' 'no-wait=W' 'signal=s' 'timeout=t'
+
+	if [ -v reals ]; then
+		_s6_opt_s=$reals
+	else
+		unset _s6_opt_s
+	fi
+
 	_s6f_processes
 }
 
