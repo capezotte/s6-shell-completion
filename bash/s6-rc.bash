@@ -33,6 +33,21 @@ __longopt_fix() {
 	return 1
 }
 
+# Hack because mapfile sets the array to ( '' ) when given EOF as input, which is stupid and
+# breaks compopt -o plusdirs.
+_mapreply_append() {
+	local oldm=$- IFS=$'\n'
+	set -f
+
+	COMPREPLY+=( $(</dev/stdin) )
+
+	[[ "$oldm" == *f* ]] || set +f
+}
+_mapreply() {
+	COMPREPLY=()
+	_mapreply_append
+}
+
 # adds yet-unused options and actions to COMPREPLY
 # side effect: sets _s6_action and _s6_opt_[A-Za-z0-9] variables if they are found
 # side effect: sets _s6_action_i (index of first non-option arg)
@@ -155,16 +170,16 @@ __s6rc_db() {
 	local args=()
 	[ ! "$_s6_bootdb" ] || args+=( "-c$_s6_bootdb" )
 	[ ! "$_s6_livedir" ] || args+=( "-l$_s6_livedir" )
-	mapfile -t -O "${#COMPREPLY[@]}" COMPREPLY < <(command s6-rc-db "${args[@]}" -- list "$@")
+	_mapreply_append < <(command s6-rc-db "${args[@]}" -- list "$@")
 }
 
 __s6rc_rlist() {
-	mapfile -t -O "${#COMPREPLY[@]}" COMPREPLY < <(command s6-rc-repo-list ${_s6_repodir+-r"${_s6_repodir}"})
+	_mapreply_append < <(command s6-rc-repo-list ${_s6_repodir+-r"${_s6_repodir}"})
 }
 
 # repo reference db
 __s6rc_rdb() {
-	mapfile -t -O "${#COMPREPLY[@]}" COMPREPLY < <(command s6-rc-db -c "${_s6_repodir:=/var/lib/s6-rc/repository}/compiled/.ref" -- list "$@")
+	_mapreply_append < <(command s6-rc-db -c "${_s6_repodir:=/var/lib/s6-rc/repository}/compiled/.ref" -- list "$@")
 }
 
 _s6-svc() {
@@ -172,7 +187,7 @@ _s6-svc() {
 	case $prev in
 	(-w) COMPREPLY+=(u U d D r R) ;;
 	(-T) return ;;
-	(-s) mapfile -t COMPREPLY <<< "$(compgen -A signal | sed -n 's/^SIG//p')" ;;
+	(-s) _mapreply <<< "$(compgen -A signal | sed -n 's/^SIG//p')" ;;
 	(*)
 		compopt -o plusdirs -o nosort
 		# cursed_optspec.sh
@@ -180,7 +195,7 @@ _s6-svc() {
 		__s6_getopt w:s:abqhkKti12pPcCyrodDuxOXT:
 	esac
 
-	mapfile -t COMPREPLY <<< "$(compgen -W '${COMPREPLY[@]}' -- "${cur}")"
+	_mapreply <<< "$(compgen -W '${COMPREPLY[@]}' -- "${cur}")"
 }
 
 _s6-svstat() {
@@ -218,7 +233,7 @@ _s6-svstat() {
 	;;
 	esac
 
-	mapfile -t COMPREPLY <<< "$(compgen -W '${COMPREPLY[@]}' -- "${cur}")"
+	_mapreply <<< "$(compgen -W '${COMPREPLY[@]}' -- "${cur}")"
 }
 
 _s6-rc-db() {
@@ -252,7 +267,7 @@ _s6-rc-db() {
 		esac
 	;;
 	esac
-	mapfile -t COMPREPLY <<< "$(compgen -W '${COMPREPLY[@]}' -- "${cur}")"
+	_mapreply <<< "$(compgen -W '${COMPREPLY[@]}' -- "${cur}")"
 }
 
 _s6-rc() {
@@ -286,7 +301,7 @@ _s6-rc() {
 	;;
 	esac
 
-	mapfile -t COMPREPLY <<< "$(compgen -W '${COMPREPLY[@]}' -- "${cur}")"
+	_mapreply <<< "$(compgen -W '${COMPREPLY[@]}' -- "${cur}")"
 }
 
 
@@ -303,7 +318,7 @@ _s6rc_set() {
 
 	case $prev in
 		(--fdhuser|-h)
-			mapfile -t COMPREPLY < <(cut -d: -f1 /etc/passwd)
+			_mapreply < <(cut -d: -f1 /etc/passwd)
 			return
 			;;
 		(--default-bundle|-D) return ;;
@@ -318,7 +333,7 @@ _s6rc_set() {
 			;;
 		(-f|--conv-file)
 			compopt -o filenames
-			mapfile -t COMPREPLY <<< "$(compgen -A file -- "$cur")"
+			_mapreply <<< "$(compgen -A file -- "$cur")"
 			return 1
 		;;
 	esac
@@ -330,7 +345,7 @@ _s6-rc-set-new() {
 	local cur="${COMP_WORDS[COMP_CWORD]}" prev="${COMP_WORDS[COMP_CWORD-1]}" \
 		_s6_opt_{v,r} _s6_action_i
 	_s6rc_set
-	mapfile -t COMPREPLY <<< "$(compgen -W '${COMPREPLY[@]}' -- "${cur}")"
+	_mapreply <<< "$(compgen -W '${COMPREPLY[@]}' -- "${cur}")"
 }
 _s6-rc-set-delete() { _s6-rc-set-new; }
 
@@ -341,7 +356,7 @@ _s6-rc-set-copy() {
 	if [ "$((COMP_CWORD-_s6_action_i))" -eq 0 ]; then
 		__s6rc_rlist
 	fi
-	mapfile -t COMPREPLY <<< "$(compgen -W '${COMPREPLY[@]}' -- "${cur}")"
+	_mapreply <<< "$(compgen -W '${COMPREPLY[@]}' -- "${cur}")"
 }
 
 _s6-rc-set-change() {
@@ -357,7 +372,7 @@ _s6-rc-set-change() {
 		1) COMPREPLY=( masked disabled enabled essential ) ;;
 		*) __s6rc_rdb all ;;
 	esac
-	mapfile -t COMPREPLY <<< "$(compgen -W '${COMPREPLY[@]}' -- "${cur}")"
+	_mapreply <<< "$(compgen -W '${COMPREPLY[@]}' -- "${cur}")"
 }
 
 _s6-rc-set-status() {
@@ -368,7 +383,7 @@ _s6-rc-set-status() {
 		0) __s6rc_rlist ;;
 		*) __s6rc_rdb all ;;
 	esac
-	mapfile -t COMPREPLY <<< "$(compgen -W '${COMPREPLY[@]}' -- "${cur}")"
+	_mapreply <<< "$(compgen -W '${COMPREPLY[@]}' -- "${cur}")"
 }
 
 _s6-rc-set-fix() {
@@ -378,7 +393,7 @@ _s6-rc-set-fix() {
 		'force-essential=e' 'no-force-essential=E' \
 		'dry-run=n'
 	__s6rc_rlist
-	mapfile -t COMPREPLY <<< "$(compgen -W '${COMPREPLY[@]}' -- "${cur}")"
+	_mapreply <<< "$(compgen -W '${COMPREPLY[@]}' -- "${cur}")"
 }
 
 _s6-rc-set-commit() {
@@ -387,7 +402,7 @@ _s6-rc-set-commit() {
 	_s6rc_set D:h:Kf \
 		'default-bundle=D' 'fdhuser=h' 'keep=K' 'force=f'
 	[ "$((COMP_CWORD-_s6_action_i))" -ne 0 ] || __s6rc_rlist
-	mapfile -t COMPREPLY <<< "$(compgen -W '${COMPREPLY[@]}' -- "${cur}")"
+	_mapreply <<< "$(compgen -W '${COMPREPLY[@]}' -- "${cur}")"
 }
 
 _s6-rc-set-install() {
@@ -400,7 +415,7 @@ _s6-rc-set-install() {
 		'force-essentials=e' 'no-force-essentials=E' \
 		'no-update='
 	[ "$((COMP_CWORD-_s6_action_i))" -ne 0 ] || __s6rc_rlist
-	mapfile -t COMPREPLY <<< "$(compgen -W '${COMPREPLY[@]}' -- "${cur}")"
+	_mapreply <<< "$(compgen -W '${COMPREPLY[@]}' -- "${cur}")"
 }
 
 # s6-frontend completions
@@ -493,7 +508,7 @@ _s6() {
 
 #finish:
 	if [ "$cur" != = ]; then
-		mapfile -t COMPREPLY <<< "$(compgen -W '${COMPREPLY[@]}' -- "${cur}")"
+		_mapreply <<< "$(compgen -W '${COMPREPLY[@]}' -- "${cur}")"
 	fi
 }
 
@@ -569,7 +584,7 @@ _s6_process_kill() {
 	case $prev in
 		-t|--timeout) return 1 ;;
 		-s|--signal)
-			mapfile -t COMPREPLY <<< "$(compgen -A signal | sed -n 's/^SIG//p')"
+			_mapreply <<< "$(compgen -A signal | sed -n 's/^SIG//p')"
 			return 0
 		;;
 	esac
@@ -624,7 +639,7 @@ _s6_live_install() {
 	case $prev in
 		(-f|--conv-file)
 			compopt -o filenames
-			mapfile -t COMPREPLY <<< "$(compgen -A file -- "$cur")"
+			_mapreply <<< "$(compgen -A file -- "$cur")"
 			return 1
 		;;
 	esac
@@ -669,7 +684,7 @@ _s6_set_commit() {
 	__longopt_fix COMP_CWORD
 	case $prev in
 		-h|--fdholder-user)
-			mapfile -t COMPREPLY < <(cut -d: -f1 /etc/passwd)
+			_mapreply < <(cut -d: -f1 /etc/passwd)
 			return
 			;;
 		-D|--default-bundle) return 1 ;;
