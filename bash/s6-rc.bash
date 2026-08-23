@@ -685,9 +685,20 @@ _s6_set_status() {
 }
 
 _s6_set_check() {
-	__s6_getopt FduEe \
+	local cur="${COMP_WORDS[COMP_CWORD]}" prev="${COMP_WORDS[COMP_CWORD-1]}" \
+		_s6_opt_s
+	__longopt_fix COMP_CWORD
+
+	case $prev in
+		(-s|--set)
+			_s6f_repo list
+			return 0
+		;;
+	esac
+
+	__s6_getopt FduEes: \
 		'fix=F' 'no-force-essential=E' 'force-essential=e' \
-		'up=u' 'down=d'
+		'up=u' 'down=d' 'set=s'
 }
 
 _s6_set_change() {

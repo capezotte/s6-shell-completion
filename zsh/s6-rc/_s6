@@ -131,6 +131,7 @@ case ${line[1]} in
 			delete) args+=( ':set:->set' ) ;;
 			check)
 				args+=(
+					+ '(set)' {-s,--set=-}'[set to apply]:set:->set'
 					+ '(fix)' {-F,--fix}'[fix errors checked for]'
 					+ '(moreless)'
 						'(fixup)'{-u,--up}'[fix inconsistencies by adding services]'
