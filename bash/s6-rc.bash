@@ -153,25 +153,18 @@ __s6_getopt() {
 # shorthand for s6-rc-db list ...
 __s6rc_db() {
 	local args=()
-	[ ! "$_s6_opt_c" ] || args+=( "-c$_s6_opt_c" )
-	[ ! "$_s6_opt_l" ] || args+=( "-l$_s6_opt_l" )
+	[ ! "$_s6_bootdb" ] || args+=( "-c$_s6_bootdb" )
+	[ ! "$_s6_livedir" ] || args+=( "-l$_s6_livedir" )
 	mapfile -t -O "${#COMPREPLY[@]}" COMPREPLY < <(command s6-rc-db "${args[@]}" -- list "$@")
 }
 
 __s6rc_rlist() {
-	mapfile -t -O "${#COMPREPLY[@]}" COMPREPLY < <(command s6-rc-repo-list ${_s6_opt_r+-r"${_s6_opt_r}"})
+	mapfile -t -O "${#COMPREPLY[@]}" COMPREPLY < <(command s6-rc-repo-list ${_s6_repodir+-r"${_s6_repodir}"})
 }
 
 # repo reference db
 __s6rc_rdb() {
-	local repo
-	if [ -v _s6_opt_r ]; then
-		repo=$_s6_opt_r
-	else
-		# TODO: somehow find the compiled-in defaults
-		repo=/var/lib/s6-rc/repository
-	fi
-	mapfile -t -O "${#COMPREPLY[@]}" COMPREPLY < <(command s6-rc-db -c "$repo/compiled/.ref" -- list "$@")
+	mapfile -t -O "${#COMPREPLY[@]}" COMPREPLY < <(command s6-rc-db -c "${_s6_repodir:=/var/lib/s6-rc/repository}/compiled/.ref" -- list "$@")
 }
 
 _s6-svc() {
@@ -230,14 +223,16 @@ _s6-svstat() {
 
 _s6-rc-db() {
 	local cur="${COMP_WORDS[COMP_CWORD]}" prev="${COMP_WORDS[COMP_CWORD-1]}"
-	local _s6_opt_c='' _s6_opt_l='' _s6_action='' _s6_action_i
+	local _s6_opt_c='' _s6_opt_l='' _s6_bootdb _s6_livedir _s6_action='' _s6_action_i
 
-	# Need to set _s6_opt_{c,l} for __s6rc_db
 	__s6_getopt udbc:l: \
 		help check list \
 		type timeout contents \
 		dependencies pipeline script \
 		flags atomics all-dependencies
+
+	_s6_bootdb=$_s6_opt_c
+	_s6_livedir=$_s6_opt_l
 
 	case $prev in
 	(help|check) return ;;
@@ -420,7 +415,8 @@ _s6() {
 	local cur="${COMP_WORDS[COMP_CWORD]}" prev="${COMP_WORDS[COMP_CWORD-1]}"
 	__longopt_fix COMP_CWORD || :
 
-	local _s6_opt_{s,l,r,v,color,stmp} _s6_action _s6_action_i s6_cmd='' s6_subcmd
+	local _s6_opt_{s,l,r,v,color,stmp} _s6_action _s6_action_i s6_cmd='' s6_subcmd \
+		_s6_scandir _s6_livedir _s6_repodir _s6_bootdb
 
 	# Getting __s6_getopt out of the way first because -l conflicts
 	# s6 process status vs s6 itself
@@ -429,6 +425,10 @@ _s6() {
 		'stmpdir=stmp' 'color=color' \
 		help version process live repository set system
 
+	_s6_scandir=$_s6_opt_s
+	_s6_livedir=$s6_opt_l
+	_s6_repodir=$s6_opt_r
+	_s6_bootdb=$_s6_opt_c
 
 	if ((COMP_CWORD<=_s6_action_i)) && [[ "$prev" == -* ]]; then
 		case $prev in
@@ -506,15 +506,15 @@ _s6() {
 # Get configs from s6-frontend
 # side effect: sets conf
 _s6f_getconf() {
-	conf=$(envfile -I -- "${S6_FRONTEND_CONF:-/etc/s6-frontend.conf}" \
+	envfile -I -- "${S6_FRONTEND_CONF:-/etc/s6-frontend.conf}" \
 		importas -i var "$1" \
-		printf '%s\n' \$var 2>/dev/null)
+		printf '%s\n' \$var 2>/dev/null
 }
 
 _s6f_live() {
-	local -I _s6_opt_l conf
-	if [ ! -v _s6_opt_l ] && _s6f_getconf livedir; then
-		_s6_opt_l="${conf}" __s6rc_db all
+	local conf
+	if [ ! -v _s6_livedir ] && conf=$(_s6f_getconf livedir); then
+		_s6_livedir="$conf" __s6rc_db all
 	else
 		__s6rc_db all
 	fi
@@ -523,9 +523,9 @@ _s6f_live() {
 # _s6f_repo list
 # _s6f_repo db all|services|...
 _s6f_repo() {
-	local -I _s6_opt_r conf
-	if [ ! -v _s6_opt_r ] && _s6f_getconf repodir; then
-		_s6_opt_r="$conf" __s6rc_r"$1" "${@:2}"
+	local conf
+	if [ ! -v _s6_repodir ] && conf=$(_s6f_getconf repodir); then
+		_s6_repodir="$conf" __s6rc_r"$1" "${@:2}"
 	else
 		__s6rc_r"$1" "${@:2}"
 	fi
@@ -533,9 +533,9 @@ _s6f_repo() {
 
 _s6f_processes() {
 	local conf
-	if [ -v _s6_opt_s ]; then
-		conf=$_s6_opt_s
-	elif _s6f_getconf scandir; then
+	if [ -n "${_s6_scandir-}" ]; then
+		conf=$_s6_scandir
+	elif conf=$(_s6f_getconf scandir); then
 		:
 	else
 		# TODO: find compiled-in default
@@ -574,18 +574,8 @@ _s6_process_kill() {
 		;;
 	esac
 
-	# FIXME: cleaner way of preventing overwriting of scandir
-	local reals
-	[ ! -v _s6_opt_s ] || reals="$_s6_opt_s"
-
 	local _s6_opt_{s,t}
 	__s6_getopt Wws:t: 'wait=w' 'no-wait=W' 'signal=s' 'timeout=t'
-
-	if [ -v reals ]; then
-		_s6_opt_s=$reals
-	else
-		unset _s6_opt_s
-	fi
 
 	_s6f_processes
 }
