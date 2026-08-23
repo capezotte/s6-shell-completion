@@ -312,10 +312,6 @@ _s6rc_set() {
 			return
 			;;
 		(--default-bundle|-D) return ;;
-		(-I|--if-dependencies-found)
-			COMPREPLY=( fail pull warn )
-			return
-			;;
 		(-r|--repository|-c|--bootdb|-l|--livedir)
 			COMPREPLY=()
 			compopt -o plusdirs
@@ -356,9 +352,10 @@ _s6-rc-set-copy() {
 _s6-rc-set-change() {
 	local cur="${COMP_WORDS[COMP_CWORD]}" prev="${COMP_WORDS[COMP_CWORD-1]}" \
 		_s6_opt_{I,v,r} _s6_action_i
-	_s6rc_set I:Eenf \
+	_s6rc_set IiPpEenf \
 		'force-essential=e' 'no-force-essential=E' \
-		'ignore-dependencies=f' 'if-dependencies-found=I' \
+		'fail-on-dependencies=i' 'no-fail-on-dependencies=I' \
+		'pull-dependencies=p' 'no-pull-dependencies=P' \
 		'dry-run=n'
 	case "$((COMP_CWORD-_s6_action_i))" in
 		0) __s6rc_rlist ;;
@@ -668,15 +665,9 @@ _s6_set_check() {
 }
 
 _s6_set_change() {
-	local cur="${COMP_WORDS[COMP_CWORD]}" prev="${COMP_WORDS[COMP_CWORD-1]}"
-	__longopt_fix COMP_CWORD
-	case $prev in
-		-I|--if-dependencies-found)
-			COMPREPLY=( fail pull warn )
-			return
-			;;
-	esac
-	__s6_getopt fnI: 'force=f' 'dry-run=n' 'if-dependencies-found=I'
+	__s6_getopt nIiPp 'dry-run=n' \
+		'fail-on-dependencies=i' 'no-fail-on-dependencies=I' \
+		'pull-dependencies=p' 'no-pull-dependencies=P'
 	_s6f_repo db all
 }
 for _tool in enable disable mask unmask make-essential; do

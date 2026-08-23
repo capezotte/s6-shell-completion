@@ -48,8 +48,10 @@ case "${service#s6-rc-(set|repo)-}" in
 				'(noessential)'{-E,--no-force-essential}'[report error if service must become "essential"/always on]'
 				'(essential)'{-e,--force-essential}'[allow services to become essential despite not being so in the sources]'
 			+ '(ondep)'
-				'(force)'{-f,--force}'[ignore dependencies when applying prescription]'
-				'(act)'{-I,--if-dependencies-found=-}'[what to do with dependencies when service is added]:if-dependencies-found:((fail warn\:print\ warning\ and\ proceed pull\:act\ on\ dependencies\ similarly))'
+				'(faildep)'{-i,--fail-on-dependencies}'[fail if the service requires additional dependencies to be enabled]'
+				'(depok)'{-I,--no-fail-on-dependencies}'[enable service even if it requires dependencies]'
+				'(nopulldep)'{-P,--no-pull-dependencies}'[do not handle dependencies (might create a broken set with -I)]'
+				'(pulldep)'{-p,--pull-dependencies}'[automatically enable dependencies if needed]'
 		)
 		;;
 	fix)
